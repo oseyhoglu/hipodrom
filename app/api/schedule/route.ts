@@ -84,6 +84,14 @@ export async function GET(request: Request) {
               race_type: race.raceType,
               has_altili: race.hasAltili,
               altili_no: race.altiliNo,
+              mesafe: race.mesafe,
+              kosul: race.kosul,
+              eld: race.eld,
+              ikramiye: race.ikramiye,
+              ekuri: race.ekuri,
+              has_cifte: race.hasCifte,
+              has_ikili: race.hasIkili,
+              has_sirali_ikili: race.hasSiraliIkili,
             }, { onConflict: 'bulletin_id,race_no' })
             .select('id')
             .single();

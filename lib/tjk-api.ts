@@ -93,6 +93,15 @@ export interface RaceInfo {
   raceType: string;       // "HANDİKAP 1-55"
   hasAltili: boolean;
   altiliNo: number | null; // 1 or 2
+  // Yeni alanlar
+  mesafe: number | null;          // metre (ör: 900)
+  kosul: string;                  // "ŞARTLI, 2 Yaşlı İngilizler, 57 kg"
+  eld: string;                    // "0:52:05"
+  ikramiye: string;               // "835000,334000,167000,83500,41750"
+  ekuri: string;                  // "[(7)MAJESTUOSA,(8)OKLAHOMA] eküridir"
+  hasCifte: boolean;
+  hasIkili: boolean;
+  hasSiraliIkili: boolean;
   horses: HorseInfo[];
 }
 
@@ -168,9 +177,58 @@ function parseRacePanel($: CheerioAPI, panelEl: any): RaceInfo | null {
   const raceTime = `${raceMatch[2]}:${raceMatch[3]}`;
   const raceName = `${raceNo}. Koşu`;
 
-  // Race type (HANDİKAP etc.)
+  // Race type (HANDİKAP etc.) — özel koşu adı
   const raceTypeEl = detailsDiv.find('.ozelKosuAdi');
   const raceType = raceTypeEl.text().trim() || '';
+
+  // Koşul satırı: "ŞARTLI, 2 Yaşlı İngilizler, 57 kg, 900 Çm, ELD.: 0:52:05"
+  const kosulEl = detailsDiv.find('.race-condition, .kosul, .race-info').first();
+  const kosulRaw = kosulEl.text().trim() ||
+    detailsDiv.find('p, span, div').filter((_, el) => $(el).text().includes('Çm')).first().text().trim();
+
+  // Mesafe: "900 Çm" → 900
+  const mesafeMatch = kosulRaw.match(/(\d+)\s*[Çç]m/);
+  const mesafe = mesafeMatch ? parseInt(mesafeMatch[1], 10) : null;
+
+  // ELD: "ELD.: 0:52:05"
+  const eldMatch = kosulRaw.match(/ELD\.\s*[:\s]*([\d:]+)/i);
+  const eld = eldMatch ? eldMatch[1].trim() : '';
+
+  // Koşul metni (mesafe ve ELD hariç)
+  const kosul = kosulRaw.replace(/\s*\d+\s*[Çç]m.*$/i, '').trim();
+
+  // İkramiye: "1.)835.000 ₺ 2.)334.000 ₺ ..."
+  const ikramiyeEl = panel.find('.ikramiye, [class*="ikram"], [class*="prim"]').first();
+  const ikramiyeRaw = ikramiyeEl.text().trim();
+  // Sayıları çıkar: "835.000" → 835000
+  const ikramiyeNums = [...ikramiyeRaw.matchAll(/[\d.,]+\s*₺/g)]
+    .map(m => m[0].replace(/[.₺\s]/g, '').replace(',', '.'))
+    .join(',');
+  const ikramiye = ikramiyeNums || ikramiyeRaw.slice(0, 200);
+
+  // Ekuri bilgisi
+  const ekuriEl = panel.find('[class*="ekuri"], [class*="couple"]').first();
+  let ekuri = ekuriEl.text().trim();
+  if (!ekuri) {
+    // Alternatif: "eküridir" geçen metni bul
+    panel.find('*').each((_, el) => {
+      const t = $(el).text();
+      if (t.includes('eküridir') && t.length < 200 && !ekuri) {
+        ekuri = t.trim();
+      }
+    });
+  }
+
+  // Bahis türleri: Çifte, İkili, Sıralı İkili
+  let hasCifte = false;
+  let hasIkili = false;
+  let hasSiraliIkili = false;
+  panel.find('*').each((_, el) => {
+    const t = $(el).text().toLowerCase();
+    if (t.includes('çifte') && t.includes('başlar')) hasCifte = true;
+    if (t.includes('ikili') && t.includes('başlar') && !t.includes('sıralı') && !t.includes('sirali')) hasIkili = true;
+    if ((t.includes('sıralı ikili') || t.includes('sirali ikili')) && t.includes('başlar')) hasSiraliIkili = true;
+  });
 
   // Parse horses from table rows
   const horses: HorseInfo[] = [];
@@ -291,6 +349,14 @@ function parseRacePanel($: CheerioAPI, panelEl: any): RaceInfo | null {
     raceType,
     hasAltili,
     altiliNo,
+    mesafe,
+    kosul,
+    eld,
+    ikramiye,
+    ekuri,
+    hasCifte,
+    hasIkili,
+    hasSiraliIkili,
     horses,
   };
 }

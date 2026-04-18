@@ -22,6 +22,15 @@ CREATE TABLE IF NOT EXISTS races (
     race_type TEXT,
     has_altili BOOLEAN DEFAULT FALSE,
     altili_no INTEGER,
+    -- Yeni alanlar
+    mesafe INTEGER,                 -- metre cinsinden mesafe (ör: 900)
+    kosul TEXT,                     -- koşul metni (ör: "ŞARTLI, 2 Yaşlı İngilizler, 57 kg")
+    eld TEXT,                       -- en iyi elde edilen derece (ör: "0:52:05")
+    ikramiye TEXT,                  -- ikramiye listesi JSON ya da text
+    ekuri TEXT,                     -- ekuri bilgisi (ör: "[(7)MAJESTUOSA,(8)OKLAHOMA]")
+    has_cifte BOOLEAN DEFAULT FALSE,
+    has_ikili BOOLEAN DEFAULT FALSE,
+    has_sirali_ikili BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(bulletin_id, race_no)
 );
