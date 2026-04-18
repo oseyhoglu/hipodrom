@@ -2,16 +2,16 @@ import { load, type CheerioAPI } from 'cheerio';
 
 // --- TJK Şehir ID Mapping (sabit ID'ler — dinamik fetch için fetchTodayCityList kullanılır) ---
 export const TJK_CITIES: Record<string, { id: number; name: string }> = {
-  ISTANBUL: { id: 17, name: 'İstanbul' },
-  ANKARA: { id: 5, name: 'Ankara' },
-  IZMIR: { id: 2, name: 'İzmir' },
-  BURSA: { id: 6, name: 'Bursa' },
-  ADANA: { id: 1, name: 'Adana' },
-  ANTALYA: { id: 3, name: 'Antalya' },
-  ELAZIG: { id: 10, name: 'Elazığ' },
-  DBAKIR: { id: 8, name: 'Diyarbakır' },
-  SANLIURFA: { id: 26, name: 'Şanlıurfa' },
-  KOCAELI: { id: 20, name: 'Kocaeli' },
+  ISTANBUL: { id: 3, name: 'İstanbul' },
+  ANKARA:   { id: 5, name: 'Ankara' },
+  IZMIR:    { id: 2, name: 'İzmir' },
+  BURSA:    { id: 4, name: 'Bursa' },
+  ADANA:    { id: 1, name: 'Adana' },
+  ANTALYA:  { id: 10, name: 'Antalya' },
+  ELAZIG:   { id: 7, name: 'Elazığ' },
+  DBAKIR:   { id: 8, name: 'Diyarbakır' },
+  SANLIURFA:{ id: 6, name: 'Şanlıurfa' },
+  KOCAELI:  { id: 9, name: 'Kocaeli' },
 };
 
 // TJK şehir adı → iç key eşleşmesi (normalize edilmiş)
