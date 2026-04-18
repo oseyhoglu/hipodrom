@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 import glob
 
 # --- KULLANICI AYARLARI ---
-TELEGRAM_BOT_TOKEN = "5975936549:AAFnfEFh3INw_wvjVMBgkJTmyRPw-e3XZ4E"
+TELEGRAM_BOT_TOKEN = "..."
 TELEGRAM_CHAT_ID = "" 
 # --- AYARLAR SONU ---
 

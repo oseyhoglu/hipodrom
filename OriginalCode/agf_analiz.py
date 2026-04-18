@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 # --- KULLANICI AYARLARI ---
-TELEGRAM_BOT_TOKEN = "5975936549:AAFnfEFh3INw_wvjVMBgkJTmyRPw-e3XZ4E"
+TELEGRAM_BOT_TOKEN = "..."
 TELEGRAM_CHAT_ID = ["-4730523355"]
 # --- AYARLAR SONU "545683803", -4730523355 ---
 
