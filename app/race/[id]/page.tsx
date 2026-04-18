@@ -26,7 +26,11 @@ async function getRaceData(raceId: string) {
 
 function formatReadTime(iso: string) {
   const d = new Date(iso);
-  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+  // UTC+3 (Türkiye saati) — sunucu UTC'de çalışır, offset elle eklenir
+  const utcMinutes = d.getUTCHours() * 60 + d.getUTCMinutes() + 3 * 60;
+  const trHours = Math.floor((utcMinutes % (24 * 60)) / 60);
+  const trMinutes = utcMinutes % 60;
+  return `${trHours.toString().padStart(2, "0")}:${trMinutes.toString().padStart(2, "0")}`;
 }
 
 export default async function RacePage({ params }: { params: Promise<{ id: string }> }) {

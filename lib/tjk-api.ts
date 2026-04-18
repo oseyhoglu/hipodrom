@@ -161,7 +161,7 @@ function parseRacePanel($: CheerioAPI, panelEl: any): RaceInfo | null {
   const raceText = raceLink.text().trim();
 
   // Parse "1.                        Koşu:08.45" -> raceNo=1, time="08:45"
-  const raceMatch = raceText.match(/(\d+)\.\s+Koşu[:\s]*(\d{2})[.](\d{2})/);
+  const raceMatch = raceText.match(/(\d+)\.\s+Koşu[:\s]*(\d{2})[.:](\d{2})/);
   if (!raceMatch) return null;
 
   const raceNo = parseInt(raceMatch[1], 10);
@@ -329,9 +329,14 @@ export function parseBulletinHTML(html: string, cityKey: string, raceDate: strin
       race.hasAltili = true;
       race.altiliNo = 1;
       altili1Done = true;
-    } else if (hasAgf2 && !altili2Done) {
+    }
+
+    if (hasAgf2 && !altili2Done) {
       race.hasAltili = true;
-      race.altiliNo = 2;
+      race.altiliNo = race.altiliNo === 1 ? 1 : 2; // 2. altılı (1. ile çakışmıyorsa)
+      if (race.altiliNo !== 1) {
+        race.altiliNo = 2;
+      }
       altili2Done = true;
     }
   }

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { fetchTJKProgram, parseBulletinHTML, TJK_CITIES, fetchTodayCityList } from '@/lib/tjk-api';
 
-export const maxDuration = 10;
+export const maxDuration = 60;
 
 function verifyAuth(request: Request): boolean {
   const authHeader = request.headers.get('authorization');
@@ -18,9 +18,16 @@ export async function GET(request: Request) {
   const today = new Date();
   const dateStr = today.toISOString().split('T')[0];
   const results: { city: string; status: string; racesCount: number; cityId?: number }[] = [];
+  const { searchParams } = new URL(request.url);
+  const force = searchParams.get('force') === 'true';
 
   try {
+    if (force) {
+      // Bugünün kayıtlarını temizle (cascade ile races + horses da silinir)
+      await supabase.from('bulletins').delete().eq('race_date', dateStr);
+    }
     const todayCities = await fetchTodayCityList();
+    const debug = searchParams.get('debug') === 'true';
 
     const cityPromises = todayCities.map(async ({ cityKey, cityId, cityName: dynamicCityName }) => {
       try {
@@ -32,6 +39,23 @@ export async function GET(request: Request) {
         const bulletin = parseBulletinHTML(html, cityKey, dateStr);
         if (bulletin.races.length === 0) {
           return { city: cityKey, status: 'no_races', racesCount: 0, cityId };
+        }
+
+        if (debug) {
+          // Sadece parse sonucunu döndür, DB'ye yazma
+          return {
+            city: cityKey,
+            status: 'debug',
+            racesCount: bulletin.races.length,
+            cityId,
+            races: bulletin.races.map(r => ({
+              no: r.raceNo,
+              time: r.raceTime,
+              hasAltili: r.hasAltili,
+              altiliNo: r.altiliNo,
+              horses: r.horses.length,
+            })),
+          };
         }
 
         const cityInfo = TJK_CITIES[cityKey];
@@ -92,6 +116,8 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       date: dateStr,
+      force,
+      debug,
       citiesFound: todayCities.map(c => `${c.cityKey}(id=${c.cityId})`),
       results,
       timestamp: new Date().toISOString(),
