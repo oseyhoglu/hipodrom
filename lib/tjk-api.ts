@@ -264,18 +264,23 @@ function parseRacePanel($: CheerioAPI, panelEl: any): RaceInfo | null {
     const horseNo = parseInt(horseNoText, 10);
     if (isNaN(horseNo)) return;
 
-    // Horse name — TJK stores horse name in data-horse-name attribute on the <tr> element
-    let horseName = $(rowEl).attr('data-horse-name')?.trim() || '';
+    // Horse name — text is inside <a> tag within .gunluk-GunlukYarisProgrami-AtAdi
+    const horseNameTd = row.find('.gunluk-GunlukYarisProgrami-AtAdi');
+    let horseName = '';
+    // Try first text node inside <a>
+    horseNameTd.find('a').first().contents().each((_, node) => {
+      if (node.type === 'text' && !horseName) {
+        horseName = $(node).text().trim();
+      }
+    });
+    // Fallback: split full text by newline, pick first non-empty
     if (!horseName) {
-      // Fallback: try CSS class
-      const horseNameTd = row.find('.gunluk-GunlukYarisProgrami-AtAdi');
-      horseNameTd.contents().each((_, node) => {
-        if (node.type === 'text' && !horseName) {
-          horseName = $(node).text().trim();
-        }
-      });
-      if (!horseName) horseName = horseNameTd.text().split('\n')[0].trim();
+      horseName = horseNameTd.text().split('\n')
+        .map((s: string) => s.trim())
+        .find((s: string) => s.length > 0) || '';
     }
+    // Also try data-horse-name attribute (ebayi.tjk.org style)
+    if (!horseName) horseName = $(rowEl).attr('data-horse-name')?.trim() || '';
 
     // Jockey name
     const jockeyName = row.find('.gunluk-GunlukYarisProgrami-JokeAdi a').attr('title') ||
