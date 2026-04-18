@@ -1,10 +1,10 @@
 import { load, type CheerioAPI } from 'cheerio';
 
-// --- TJK Şehir ID Mapping ---
+// --- TJK Şehir ID Mapping (sabit ID'ler — dinamik fetch için fetchTodayCityList kullanılır) ---
 export const TJK_CITIES: Record<string, { id: number; name: string }> = {
   ISTANBUL: { id: 17, name: 'İstanbul' },
-  ANKARA: { id: 2, name: 'Ankara' },
-  IZMIR: { id: 18, name: 'İzmir' },
+  ANKARA: { id: 5, name: 'Ankara' },
+  IZMIR: { id: 2, name: 'İzmir' },
   BURSA: { id: 6, name: 'Bursa' },
   ADANA: { id: 1, name: 'Adana' },
   ANTALYA: { id: 3, name: 'Antalya' },
@@ -13,6 +13,69 @@ export const TJK_CITIES: Record<string, { id: number; name: string }> = {
   SANLIURFA: { id: 26, name: 'Şanlıurfa' },
   KOCAELI: { id: 20, name: 'Kocaeli' },
 };
+
+// TJK şehir adı → iç key eşleşmesi (normalize edilmiş)
+const CITY_NAME_TO_KEY: Record<string, string> = {
+  'ankara': 'ANKARA',
+  'istanbul': 'ISTANBUL',
+  'izmir': 'IZMIR',
+  'bursa': 'BURSA',
+  'adana': 'ADANA',
+  'antalya': 'ANTALYA',
+  'elazig': 'ELAZIG',
+  'diyarbakir': 'DBAKIR',
+  'sanliurfa': 'SANLIURFA',
+  'kocaeli': 'KOCAELI',
+};
+
+function normalizeTurkish(s: string): string {
+  return s.toLowerCase()
+    .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
+    .replace(/ı/g, 'i').replace(/i̇/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+    .replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u')
+    .trim();
+}
+
+// Bugünkü TJK şehir listesini canlı olarak çek (ID'ler günden güne değişebilir)
+export async function fetchTodayCityList(): Promise<Array<{ cityKey: string; cityId: number; cityName: string }>> {
+  const mainUrl = 'https://www.tjk.org/TR/YarisSever/Info/Page/GunlukYarisProgrami';
+  try {
+    const response = await fetch(mainUrl, { headers: TJK_HEADERS });
+    const html = await response.text();
+    const { load } = await import('cheerio');
+    const $ = load(html);
+
+    const cities: Array<{ cityKey: string; cityId: number; cityName: string }> = [];
+    const seen = new Set<string>();
+
+    $('a[href*="GunlukYarisProgrami"][href*="SehirId"]').each((_, el) => {
+      const href = $(el).attr('href') || '';
+      const idMatch = href.match(/SehirId=(\d+)/);
+      const nameMatch = href.match(/SehirAdi=([^&"]+)/);
+      if (!idMatch || !nameMatch) return;
+
+      const cityId = parseInt(idMatch[1]);
+      const rawName = decodeURIComponent(nameMatch[1].replace(/\+/g, ' '));
+      const normalized = normalizeTurkish(rawName);
+      const cityKey = CITY_NAME_TO_KEY[normalized];
+
+      if (cityKey && !seen.has(cityKey)) {
+        seen.add(cityKey);
+        cities.push({ cityKey, cityId, cityName: rawName });
+      }
+    });
+
+    // Fallback: eğer sayfa parse edilemezse hardcoded listeden devam et
+    if (cities.length === 0) {
+      return Object.entries(TJK_CITIES).map(([k, v]) => ({ cityKey: k, cityId: v.id, cityName: v.name }));
+    }
+
+    return cities;
+  } catch {
+    // Fallback to hardcoded
+    return Object.entries(TJK_CITIES).map(([k, v]) => ({ cityKey: k, cityId: v.id, cityName: v.name }));
+  }
+}
 
 const TJK_BASE_URL = 'https://www.tjk.org/TR/YarisSever/Info/Sehir/GunlukYarisProgrami';
 const TJK_HEADERS = {
@@ -56,13 +119,14 @@ export interface BulletinData {
 }
 
 // --- Fetch TJK page ---
-export async function fetchTJKProgram(cityKey: string, date: Date): Promise<string> {
+export async function fetchTJKProgram(cityKey: string, date: Date, overrideCityId?: number): Promise<string> {
   const city = TJK_CITIES[cityKey];
   if (!city) throw new Error(`Unknown city: ${cityKey}`);
 
+  const cityId = overrideCityId ?? city.id;
   const dateStr = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
 
-  const url = `${TJK_BASE_URL}?SehirId=${city.id}&QueryParameter_Tarih=${encodeURIComponent(dateStr)}&SehirAdi=${encodeURIComponent(city.name)}&Era=today`;
+  const url = `${TJK_BASE_URL}?SehirId=${cityId}&QueryParameter_Tarih=${encodeURIComponent(dateStr)}&SehirAdi=${encodeURIComponent(city.name)}&Era=today`;
 
   const response = await fetch(url, { headers: TJK_HEADERS });
   if (!response.ok) throw new Error(`TJK fetch failed: ${response.status}`);
@@ -247,13 +311,28 @@ export function parseBulletinHTML(html: string, cityKey: string, raceDate: strin
     }
   });
 
-  // Determine altili numbers based on race ordering
-  // The first race with "6'LI GANYAN" data is altili 1, second is altili 2
-  let altiliCounter = 0;
+  // Altılı başlangıç koşularını belirle:
+  // agf1 olan ilk koşu = 1. Altılı başlangıcı
+  // agf2 olan ilk koşu = 2. Altılı başlangıcı
+  // Diğer tüm koşularda hasAltili = false
+  let altili1Done = false;
+  let altili2Done = false;
+
   for (const race of races) {
-    if (race.hasAltili) {
-      altiliCounter++;
-      race.altiliNo = altiliCounter;
+    race.hasAltili = false;
+    race.altiliNo = null;
+
+    const hasAgf1 = race.horses.some(h => h.agf1 != null);
+    const hasAgf2 = race.horses.some(h => h.agf2 != null);
+
+    if (hasAgf1 && !altili1Done) {
+      race.hasAltili = true;
+      race.altiliNo = 1;
+      altili1Done = true;
+    } else if (hasAgf2 && !altili2Done) {
+      race.hasAltili = true;
+      race.altiliNo = 2;
+      altili2Done = true;
     }
   }
 
@@ -266,27 +345,3 @@ export function parseBulletinHTML(html: string, cityKey: string, raceDate: strin
   };
 }
 
-// --- Fetch available cities for today ---
-export async function fetchAvailableCities(date: Date): Promise<string[]> {
-  // We try each known city and see if it returns data
-  const available: string[] = [];
-
-  const promises = Object.keys(TJK_CITIES).map(async (cityKey) => {
-    try {
-      const html = await fetchTJKProgram(cityKey, date);
-      if (html && html.includes('tablesorter')) {
-        return cityKey;
-      }
-    } catch {
-      // City not available today
-    }
-    return null;
-  });
-
-  const results = await Promise.all(promises);
-  for (const result of results) {
-    if (result) available.push(result);
-  }
-
-  return available;
-}

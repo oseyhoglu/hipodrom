@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { fetchTJKProgram, parseBulletinHTML, TJK_CITIES } from '@/lib/tjk-api';
+import { fetchTJKProgram, parseBulletinHTML, TJK_CITIES, fetchTodayCityList } from '@/lib/tjk-api';
 
-export const maxDuration = 10; // Vercel hobby max
+export const maxDuration = 10;
 
 function verifyAuth(request: Request): boolean {
   const authHeader = request.headers.get('authorization');
-  if (!process.env.CRON_SECRET) return true; // Dev mode
+  if (!process.env.CRON_SECRET) return true;
   return authHeader === `Bearer ${process.env.CRON_SECRET}`;
 }
 
@@ -16,31 +16,32 @@ export async function GET(request: Request) {
   }
 
   const today = new Date();
-  const dateStr = today.toISOString().split('T')[0]; // "2026-04-18"
-  const results: { city: string; status: string; racesCount: number }[] = [];
+  const dateStr = today.toISOString().split('T')[0];
+  const results: { city: string; status: string; racesCount: number; cityId?: number }[] = [];
 
   try {
-    // Try each known city
-    const cityPromises = Object.keys(TJK_CITIES).map(async (cityKey) => {
+    const todayCities = await fetchTodayCityList();
+
+    const cityPromises = todayCities.map(async ({ cityKey, cityId, cityName: dynamicCityName }) => {
       try {
-        const html = await fetchTJKProgram(cityKey, today);
+        const html = await fetchTJKProgram(cityKey, today, cityId);
         if (!html || !html.includes('tablesorter')) {
-          return { city: cityKey, status: 'no_races', racesCount: 0 };
+          return { city: cityKey, status: 'no_races', racesCount: 0, cityId };
         }
 
         const bulletin = parseBulletinHTML(html, cityKey, dateStr);
         if (bulletin.races.length === 0) {
-          return { city: cityKey, status: 'no_races', racesCount: 0 };
+          return { city: cityKey, status: 'no_races', racesCount: 0, cityId };
         }
 
-        // Upsert bulletin
+        const cityInfo = TJK_CITIES[cityKey];
         const { data: bulletinData, error: bulletinError } = await supabase
           .from('bulletins')
           .upsert({
             race_date: dateStr,
             city_key: cityKey,
-            city_name: bulletin.cityName,
-            city_id: bulletin.cityId,
+            city_name: cityInfo?.name || dynamicCityName,
+            city_id: cityId,
           }, { onConflict: 'race_date,city_key' })
           .select('id')
           .single();
@@ -48,7 +49,6 @@ export async function GET(request: Request) {
         if (bulletinError) throw bulletinError;
         const bulletinId = bulletinData.id;
 
-        // Upsert races and horses
         for (const race of bulletin.races) {
           const { data: raceData, error: raceError } = await supabase
             .from('races')
@@ -67,7 +67,6 @@ export async function GET(request: Request) {
           if (raceError) throw raceError;
           const raceId = raceData.id;
 
-          // Upsert horses
           for (const horse of race.horses) {
             await supabase
               .from('horses')
@@ -81,9 +80,9 @@ export async function GET(request: Request) {
           }
         }
 
-        return { city: cityKey, status: 'ok', racesCount: bulletin.races.length };
+        return { city: cityKey, status: 'ok', racesCount: bulletin.races.length, cityId };
       } catch (err) {
-        return { city: cityKey, status: `error: ${err}`, racesCount: 0 };
+        return { city: cityKey, status: `error: ${err}`, racesCount: 0, cityId };
       }
     });
 
@@ -93,6 +92,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       date: dateStr,
+      citiesFound: todayCities.map(c => `${c.cityKey}(id=${c.cityId})`),
       results,
       timestamp: new Date().toISOString(),
     });
