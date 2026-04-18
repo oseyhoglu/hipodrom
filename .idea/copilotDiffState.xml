@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/app/api/debug-parse/route.ts">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/app/api/debug-parse/route.ts" />
+              <option name="updatedContent" value="import { NextResponse } from 'next/server';&#10;import { fetchTJKProgram } from '@/lib/tjk-api';&#10;import { load } from 'cheerio';&#10;&#10;export async function GET(request: Request) {&#10;  const { searchParams } = new URL(request.url);&#10;  const city = searchParams.get('city') || 'ANKARA';&#10;&#10;  try {&#10;    const html = await fetchTJKProgram(city, new Date());&#10;    const $ = load(html);&#10;&#10;    // İlk koşunun ilk 2 atını incele&#10;    const panel = $('div.races-panes &gt; div').first();&#10;    const rows = panel.find('table.tablesorter tbody tr').slice(0, 2);&#10;&#10;    const debug: object[] = [];&#10;&#10;    rows.each((_, rowEl) =&gt; {&#10;      const row = $(rowEl);&#10;      const atAdiTd = row.find('.gunluk-GunlukYarisProgrami-AtAdi');&#10;&#10;      debug.push({&#10;        // data attributes on &lt;tr&gt;&#10;        dataHorseName: $(rowEl).attr('data-horse-name'),&#10;        dataHorseNo: $(rowEl).attr('data-horse-no'),&#10;        // AtAdi cell&#10;        atAdiHtml: atAdiTd.html()?.slice(0, 300),&#10;        atAdiText: atAdiTd.text().trim().slice(0, 100),&#10;        atAdiAnchorText: atAdiTd.find('a').text().trim(),&#10;        atAdiAnchorTitle: atAdiTd.find('a').attr('title'),&#10;        atAdiAnchorHref: atAdiTd.find('a').attr('href'),&#10;        // JokeAdi cell&#10;        jokeAdiText: row.find('.gunluk-GunlukYarisProgrami-JokeAdi').text().trim().slice(0, 100),&#10;        jokeAdiAnchorText: row.find('.gunluk-GunlukYarisProgrami-JokeAdi a').text().trim(),&#10;        jokeAdiAnchorTitle: row.find('.gunluk-GunlukYarisProgrami-JokeAdi a').attr('title'),&#10;        // All data-* attrs on row&#10;        rowAttribs: (rowEl as { attribs?: Record&lt;string, string&gt; }).attribs,&#10;      });&#10;    });&#10;&#10;    return NextResponse.json({ city, debug });&#10;  } catch (e) {&#10;    return NextResponse.json({ error: String(e) }, { status: 500 });&#10;  }&#10;}&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

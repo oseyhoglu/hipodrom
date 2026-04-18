@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { fetchTJKProgram, parseBulletinHTML } from '@/lib/tjk-api';
+
+const supabase = supabaseAdmin;
 
 export const maxDuration = 10;
 

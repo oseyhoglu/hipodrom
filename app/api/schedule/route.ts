@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { fetchTJKProgram, parseBulletinHTML, TJK_CITIES, fetchTodayCityList } from '@/lib/tjk-api';
+
+const supabase = supabaseAdmin; // schedule API requires admin for DELETE + upsert
 
 export const maxDuration = 60;
 
