@@ -92,6 +92,12 @@ export async function GET(request: Request) {
               has_cifte: race.hasCifte,
               has_ikili: race.hasIkili,
               has_sirali_ikili: race.hasSiraliIkili,
+              has_plase: race.hasPlase,
+              has_plase_ikili: race.hasPlaseIkili,
+              has_uclu_bahis: race.hasUcluBahis,
+              has_7li_ganyan: race.has7liGanyan,
+              has_7li_plase: race.has7liPlase,
+              has_3lu_ganyan: race.has3luGanyan,
             }, { onConflict: 'bulletin_id,race_no' })
             .select('id')
             .single();

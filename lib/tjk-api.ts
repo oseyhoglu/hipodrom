@@ -102,6 +102,12 @@ export interface RaceInfo {
   hasCifte: boolean;
   hasIkili: boolean;
   hasSiraliIkili: boolean;
+  hasPlase: boolean;
+  hasPlaseIkili: boolean;
+  hasUcluBahis: boolean;
+  has7liGanyan: boolean;
+  has7liPlase: boolean;
+  has3luGanyan: boolean;
   horses: HorseInfo[];
 }
 
@@ -223,11 +229,24 @@ function parseRacePanel($: CheerioAPI, panelEl: any): RaceInfo | null {
   let hasCifte = false;
   let hasIkili = false;
   let hasSiraliIkili = false;
+  let hasPlase = false;
+  let hasPlaseIkili = false;
+  let hasUcluBahis = false;
+  let has7liGanyan = false;
+  let has7liPlase = false;
+  let has3luGanyan = false;
+
   panel.find('*').each((_, el) => {
     const t = $(el).text().toLowerCase();
     if (t.includes('çifte') && t.includes('başlar')) hasCifte = true;
-    if (t.includes('ikili') && t.includes('başlar') && !t.includes('sıralı') && !t.includes('sirali')) hasIkili = true;
+    if (t.includes('ikili') && t.includes('başlar') && !t.includes('sıralı') && !t.includes('sirali') && !t.includes('plase')) hasIkili = true;
     if ((t.includes('sıralı ikili') || t.includes('sirali ikili')) && t.includes('başlar')) hasSiraliIkili = true;
+    if (t.includes('plase ikili') && t.includes('başlar')) hasPlaseIkili = true;
+    else if (t.includes('plase') && t.includes('başlar') && !t.includes('7\'li') && !t.includes('7li')) hasPlase = true;
+    if ((t.includes('üçlü bahis') || t.includes('uclu bahis')) && t.includes('başlar')) hasUcluBahis = true;
+    if (t.includes('7\'li ganyan') && t.includes('başlar')) has7liGanyan = true;
+    if (t.includes('7\'li plase') && t.includes('başlar')) has7liPlase = true;
+    if (t.includes('3\'lü ganyan') && t.includes('başlar')) has3luGanyan = true;
   });
 
   // Parse horses from table rows
@@ -357,6 +376,12 @@ function parseRacePanel($: CheerioAPI, panelEl: any): RaceInfo | null {
     hasCifte,
     hasIkili,
     hasSiraliIkili,
+    hasPlase,
+    hasPlaseIkili,
+    hasUcluBahis,
+    has7liGanyan,
+    has7liPlase,
+    has3luGanyan,
     horses,
   };
 }

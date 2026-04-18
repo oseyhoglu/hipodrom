@@ -31,6 +31,12 @@ CREATE TABLE IF NOT EXISTS races (
     has_cifte BOOLEAN DEFAULT FALSE,
     has_ikili BOOLEAN DEFAULT FALSE,
     has_sirali_ikili BOOLEAN DEFAULT FALSE,
+    has_plase BOOLEAN DEFAULT FALSE,
+    has_plase_ikili BOOLEAN DEFAULT FALSE,
+    has_uclu_bahis BOOLEAN DEFAULT FALSE,
+    has_7li_ganyan BOOLEAN DEFAULT FALSE,
+    has_7li_plase BOOLEAN DEFAULT FALSE,
+    has_3lu_ganyan BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(bulletin_id, race_no)
 );
