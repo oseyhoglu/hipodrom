@@ -146,7 +146,6 @@ export default async function BulletinPage({ params }: { params: Promise<{ city:
                   <tr>
                     <th>No</th>
                     <th>At</th>
-                    <th>Jokey</th>
                     <th>Son 6</th>
                     <th>Ganyan</th>
                     <th>AGF1 %</th>
@@ -173,8 +172,12 @@ export default async function BulletinPage({ params }: { params: Promise<{ city:
                             {horse.horse_no}
                           </span>
                         </td>
-                        <td style={{ fontWeight: 600 }}>{horse.horse_name}</td>
-                        <td style={{ color: "var(--text-secondary)" }}>{horse.jockey_name}</td>
+                        <td style={{ fontWeight: 600 }}>
+                          {horse.horse_name}
+                          {horse.jockey_name && (
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 400 }}>{horse.jockey_name}</div>
+                          )}
+                        </td>
                         <td className="mono" style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
                           {horse.last_6_races || "—"}
                         </td>

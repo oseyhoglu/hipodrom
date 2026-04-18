@@ -189,7 +189,6 @@ export default async function RacePage({ params }: { params: Promise<{ id: strin
               <th></th>
               <th>No</th>
               <th>At</th>
-              <th>Jokey</th>
               <th>Ganyan</th>
               <th>AGF (İlk→Son)</th>
               <th>Sıra</th>
@@ -222,8 +221,12 @@ export default async function RacePage({ params }: { params: Promise<{ id: strin
                   )}
                 </td>
                 <td className="mono" style={{ fontWeight: 700 }}>{a.horseNo}</td>
-                <td style={{ fontWeight: 600 }}>{a.horseName}</td>
-                <td style={{ color: "var(--text-secondary)" }}>{a.jockey}</td>
+                <td style={{ fontWeight: 600 }}>
+                  {a.horseName}
+                  {a.jockey && (
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 400 }}>{a.jockey}</div>
+                  )}
+                </td>
                 <td className="mono" style={{ color: "var(--gold)", fontWeight: 600 }}>
                   {a.ganyan?.toFixed(2) || "—"}
                 </td>
